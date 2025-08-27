@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROBO SA - Chatbot SMK Syafi'i Akrom</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #f9fafb;
+            --text-color: #1f2937;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f3f4f6;
+        }
+
+        .chat-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            pointer-events: none;
+            /* <--- tambahin ini */
+        }
+
+        .chat-container.active {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+            /* <--- aktif lagi kalau chat terbuka */
+        }
+
+        .chat-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .chat-body {
+            background-color: white;
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-footer {
+            background-color: var(--secondary-color);
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .send-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            position: relative;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background-color: var(--primary-color);
+            color: white;
+            border-top-right-radius: 4px;
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            border-top-left-radius: 4px;
+        }
+
+        .quick-replies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .quick-reply-btn {
+            background-color: #e0e7ff;
+            color: var(--primary-color);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .quick-reply-btn:hover {
+            background-color: #c7d2fe;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 10px 15px;
+            background-color: var(--secondary-color);
+            border-radius: 18px;
+            align-self: flex-start;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: dotPulse 1s infinite;
+        }
+
+        .chat-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: var(--primary-color);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 999;
+        }
+
+        .chat-header i#closeChat {
+            cursor: pointer;
+            z-index: 10;
+            position: relative;
+            padding: 4px;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+
+        .chat-header i#closeChat:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes dotPulse {
+
+            0%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: translateY(-4px);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat-toggle" id="chatToggle">
+        <i class="fas fa-comment-dots" style="font-size: 24px;"></i>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="chat-header" id="chatHeader">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img src="https://placehold.co/40x40" alt="ROBO SA"
+                    style="width: 40px; height: 40px; border-radius: 50%;">
+                <div>
+                    <div style="font-weight: 600;">SekolahBot AI</div>
+                    <div style="font-size: 12px; opacity: 0.8;">Siap membantu!</div>
+                </div>
+            </div>
+            <i class="fas fa-times" id="closeChat" style="cursor: pointer;"></i>
+        </div>
+
+        <div class="chat-body" id="chatBody">
+            <!-- Initial message -->
+            <div class="message bot-message">
+                Halo! Saya SekolahBot AI 🤖<br><br>
+                Saya bisa membantu Anda dengan:
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                    <li>Informasi terkait PPDB SMK Syafi'i Akrom</li>
+                    <li>Jurusan apa saja yang tersedia</li>
+                    <li>Apa saja fasilitas yang ada di sekolah</li>
+                    <li>Kegiatan ekstrakurikuler apa yang ditawarkan</li>
+                    <li>Kontak sekolah untuk pertanyaan lebih lanjut</li>
+                </ul>
+                <div class="quick-replies">
+                    <button class="quick-reply-btn">Informasi PPDB</button>
+                    <button class="quick-reply-btn">Informasi jurusan</button>
+                    <button class="quick-reply-btn">Informasi fasilitas</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-footer">
+            <input type="text" class="chat-input" id="userInput" placeholder="Ketik pesan Anda...">
+            <button class="send-btn" id="sendButton">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chatToggle = document.getElementById('chatToggle');
+            const chatContainer = document.getElementById('chatContainer');
+            const closeChat = document.getElementById('closeChat');
+            const chatHeader = document.getElementById('chatHeader');
+            const chatBody = document.getElementById('chatBody');
+            const userInput = document.getElementById('userInput');
+            const sendButton = document.getElementById('sendButton');
+
+            // ✅ PERBAIKAN: Gunakan URL backend yang benar
+            const API_URL = "https://chatbot-sekolah-production.up.railway.app/api/ask";
+
+            chatToggle.addEventListener('click', () => {
+                if (chatContainer.classList.contains('active')) {
+                    chatContainer.classList.remove('active');
+                } else {
+                    chatContainer.classList.add('active');
+                }
+            });
+
+            closeChat.addEventListener('click', (e) => {
+                e.stopPropagation();
+                chatContainer.classList.remove('active');
+            });
+
+            chatHeader.addEventListener('click', (e) => {
+                if (e.target === closeChat || closeChat.contains(e.target)) return;
+                if (chatContainer.classList.contains('active')) {
+                    chatContainer.classList.toggle('active');
+                }
+            });
+
+            // ✅ PERBAIKAN: Fungsi sendMessage yang benar
+            async function sendMessage() {
+                const message = userInput.value.trim();
+                if (!message) return;
+
+                addMessage(message, 'user');
+                userInput.value = '';
+                showTypingIndicator();
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message // ✅ parameter yang benar
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    // ✅ Sesuaikan dengan response dari backend
+                    addMessage(data.response || data.answer || "Terima kasih sudah bertanya!", 'bot');
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('Maaf, terjadi kesalahan. Silakan coba lagi.', 'bot');
+                }
+            }
+
+            function addMessage(text, sender, quickReplies = []) {
+                const existingTyping = chatBody.querySelector('.typing-indicator');
+                if (existingTyping) {
+                    chatBody.removeChild(existingTyping);
+                }
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}-message`;
+                messageDiv.innerHTML = text.replace(/\n/g, '<br>');
+
+                if (quickReplies && quickReplies.length > 0) {
+                    const quickRepliesDiv = document.createElement('div');
+                    quickRepliesDiv.className = 'quick-replies';
+
+                    quickReplies.forEach(reply => {
+                        const btn = document.createElement('button');
+                        btn.className = 'quick-reply-btn';
+                        btn.textContent = reply;
+                        btn.addEventListener('click', () => {
+                            addMessage(reply, 'user');
+                            showTypingIndicator();
+                            setTimeout(() => {
+                                sendQuickReply(reply);
+                            }, 300);
+                        });
+                        quickRepliesDiv.appendChild(btn);
+                    });
+
+                    messageDiv.appendChild(quickRepliesDiv);
+                }
+
+                chatBody.appendChild(messageDiv);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+
+            // ✅ PERBAIKAN: Fungsi sendQuickReply yang benar
+            async function sendQuickReply(reply) {
+                showTypingIndicator();
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: reply // ✅ parameter yang benar
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    addMessage(data.response || data.answer || "Terima kasih!", 'bot');
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('Maaf, terjadi kesalahan.', 'bot');
+                }
+            }
+
+            function showTypingIndicator() {
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'typing-indicator';
+
+                for (let i = 0; i < 3; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'typing-dot';
+                    dot.style.animationDelay = `${i * 0.2}s`;
+                    typingDiv.appendChild(dot);
+                }
+
+                chatBody.appendChild(typingDiv);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+
+            // Event listeners
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            // Quick reply buttons
+            document.querySelectorAll('.quick-reply-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const text = this.textContent;
+                    addMessage(text, 'user');
+                    sendQuickReply(text);
+                });
+            });
+        });
+    </script>
+    <!-- <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chatToggle = document.getElementById('chatToggle');
+            const chatContainer = document.getElementById('chatContainer');
+            const closeChat = document.getElementById('closeChat');
+            const chatHeader = document.getElementById('chatHeader');
+            const chatBody = document.getElementById('chatBody');
+            const userInput = document.getElementById('userInput');
+            const sendButton = document.getElementById('sendButton');
+
+            // API Configuration
+            const API_BASE = "https://chatbot-sekolah-production.up.railway.app";
+
+
+            chatToggle.addEventListener('click', () => {
+                if (chatContainer.classList.contains('active')) {
+                    chatContainer.classList.remove('active'); // sembunyikan
+                } else {
+                    chatContainer.classList.add('active'); // tampilkan
+                }
+            });
+
+            // Close chat dengan close button
+            closeChat.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent event from bubbling to header
+                chatContainer.classList.remove('active');
+            });
+
+            // Toggle chat dengan header click (hanya kalau chat sedang aktif)
+            chatHeader.addEventListener('click', (e) => {
+                // Jangan trigger kalau yang diklik adalah tombol close
+                if (e.target === closeChat || closeChat.contains(e.target)) return;
+
+                // Pastikan chat sedang aktif/visible
+                if (chatContainer.classList.contains('active')) {
+                    chatContainer.classList.toggle('active');
+                }
+            });
+
+            // Send message function
+            async function sendMessage() {
+                const response = await
+                fetch('https://chatbot-sekolah-backend-6wzhbx6oa-mufti404s-projects.vercel.app/api/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: userMessage
+                    })
+                });
+                if (!message) return;
+
+                addMessage(message, 'user');
+                userInput.value = '';
+                showTypingIndicator();
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/ask`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            question: message
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    addMessage(data.answer, 'bot', data.quickReplies || []);
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('Maaf, terjadi kesalahan. Silakan coba lagi.', 'bot');
+                }
+            }
+
+            // Add message to chat dengan quick replies
+            function addMessage(text, sender, quickReplies = []) {
+                const existingTyping = chatBody.querySelector('.typing-indicator');
+                if (existingTyping) {
+                    chatBody.removeChild(existingTyping);
+                }
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}-message`;
+                messageDiv.innerHTML = text.replace(/\n/g, '<br>');
+
+                if (quickReplies && quickReplies.length > 0) {
+                    const quickRepliesDiv = document.createElement('div');
+                    quickRepliesDiv.className = 'quick-replies';
+
+                    quickReplies.forEach(reply => {
+                        const btn = document.createElement('button');
+                        btn.className = 'quick-reply-btn';
+                        btn.textContent = reply;
+                        btn.addEventListener('click', () => {
+                            addMessage(reply, 'user');
+                            showTypingIndicator();
+                            setTimeout(() => {
+                                sendQuickReply(reply);
+                            }, 300);
+                        });
+                        quickRepliesDiv.appendChild(btn);
+                    });
+
+                    messageDiv.appendChild(quickRepliesDiv);
+                }
+
+                chatBody.appendChild(messageDiv);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+
+            // Function untuk mengirim quick reply
+            async function sendQuickReply(reply) {
+                showTypingIndicator();
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/ask`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            question: reply
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    addMessage(data.answer, 'bot', data.quickReplies || []);
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('Maaf, terjadi kesalahan.', 'bot');
+                }
+            }
+
+            // Show typing indicator
+            function showTypingIndicator() {
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'typing-indicator';
+
+                for (let i = 0; i < 3; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'typing-dot';
+                    dot.style.animationDelay = `${i * 0.2}s`;
+                    typingDiv.appendChild(dot);
+                }
+
+                chatBody.appendChild(typingDiv);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+
+            // Event listeners
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            // Quick reply buttons in initial message
+            document.querySelectorAll('.quick-reply-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const text = this.textContent;
+                    addMessage(text, 'user');
+                    sendQuickReply(text);
+                });
+            });
+        });
+    </script> -->
+</body>
+
+</html>

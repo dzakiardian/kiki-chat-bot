@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konfigurasi Server Chatbot Sekolah</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f8fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h2 {
+            color: #4f46e5;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .problem {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .solution {
+            background-color: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+        }
+
+        .steps {
+            background-color: #f1f5f9;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .steps ol {
+            padding-left: 1.5rem;
+        }
+
+        .steps li {
+            margin-bottom: 0.5rem;
+        }
+
+        code {
+            background-color: #1e293b;
+            color: #f8fafc;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+        }
+
+        pre {
+            background-color: #1e293b;
+            color: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        .env-example {
+            background-color: #1e293b;
+            color: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .note {
+            background-color: #fef3c7;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid #d97706;
+        }
+
+        .button {
+            display: inline-block;
+            background-color: #4f46e5;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            margin-top: 1rem;
+        }
+
+        .button:hover {
+            background-color: #3730a3;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding: 1rem;
+            color: #64748b;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Konfigurasi Server Chatbot Sekolah</h1>
+            <p class="subtitle">Solusi untuk masalah GEMINI_API_KEY yang belum terkonfigurasi</p>
+        </header>
+
+        <div class="card problem">
+            <h2>Masalah yang Ditemui</h2>
+            <p>Setelah mendeploy aplikasi chatbot sekolah ke Vercel, muncul pesan error:</p>
+            <pre>Konfigurasi server belum lengkap (GEMINI_API_KEY).</pre>
+            <p>Ini menunjukkan bahwa environment variable GEMINI_API_KEY belum dikonfigurasi pada server Vercel.</p>
+        </div>
+
+        <div class="card solution">
+            <h2>Solusi 1: Menambahkan Environment Variable di Vercel</h2>
+            <div class="steps">
+                <ol>
+                    <li>Login ke dashboard Vercel di <a href="https://vercel.com" target="_blank">https://vercel.com</a>
+                    </li>
+                    <li>Pilih project chatbot sekolah Anda</li>
+                    <li>Pergi ke Settings > Environment Variables</li>
+                    <li>Klik "Add New" untuk menambahkan variable baru</li>
+                    <li>Isi Name dengan <code>GEMINI_API_KEY</code></li>
+                    <li>Isi Value dengan API key Gemini Anda</li>
+                    <li>Pilih Environment: Production (dan Development jika diperlukan)</li>
+                    <li>Klik Save</li>
+                    <li>Redeploy aplikasi Anda</li>
+                </ol>
+            </div>
+            <a href="https://vercel.com/docs/projects/environment-variables" target="_blank" class="button">Pelajari
+                lebih lanjut</a>
+        </div>
+
+        <div class="card">
+            <h2>Solusi 2: Konfigurasi File Environment Lokal</h2>
+            <p>Untuk pengembangan lokal, buat file <code>.env.local</code> di folder frontend dengan konten:</p>
+            <div class="env-example">
+                GEMINI_API_KEY=your_actual_gemini_api_key_here
+            </div>
+
+            <div class="note">
+                <strong>Penting:</strong> Pastikan file <code>.env.local</code> ditambahkan ke <code>.gitignore</code>
+                agar tidak tercommit ke repository publik yang dapat membocorkan API key Anda.
+            </div>
+
+            <p>Contoh isi file <code>.gitignore</code>:</p>
+            <pre>
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+            </pre>
+        </div>
+
+        <div class="card">
+            <h2>Cara Mendapatkan Gemini API Key</h2>
+            <p>Jika Anda belum memiliki API key untuk Google Gemini, ikuti langkah berikut:</p>
+            <div class="steps">
+                <ol>
+                    <li>Kunjungi <a href="https://makersuite.google.com/app/apikey" target="_blank">Google
+                            MakerSuite</a></li>
+                    <li>Login dengan akun Google Anda</li>
+                    <li>Klik "Create API Key"</li>
+                    <li>Salin API key yang dihasilkan</li>
+                    <li>Gunakan API key tersebut dalam konfigurasi</li>
+                </ol>
+            </div>
+            <a href="https://makersuite.google.com/app/apikey" target="_blank" class="button">Dapatkan API Key</a>
+        </div>
+
+        <div class="card">
+            <h2>Testing Konfigurasi</h2>
+            <p>Setelah mengkonfigurasi environment variable, lakukan testing dengan:</p>
+            <pre>
+# Deploy ulang aplikasi
+npx vercel --prod
+
+# Atau untuk deployment preview
+npx vercel
+            </pre>
+            <p>Pastikan tidak ada error terkait GEMINI_API_KEY pada proses deployment.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2023 Chatbot Sekolah - Support by Vercel</p>
+    </footer>
+</body>
+
+</html>

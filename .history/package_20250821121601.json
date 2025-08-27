@@ -1,0 +1,59 @@
+{
+  "name": "chatbot-sekolah",
+  "version": "1.0.0",
+  "description": "ChatBot AI untuk SMK Syafi'i Akrom dengan integrasi database dan web scraping",
+  "main": "server.js",
+  "type": "commonjs",
+  
+    "scripts": {
+      "start": "node src/server.js",
+      "dev": "nodemon src/server.js",
+      "scrape": "node src/scraper.js",
+      "scrape:news": "node src/scraper.js berita",
+      "scrape:jurusan": "node src/scraper.js jurusan",
+      "scrape:ekskul": "node src/scraper.js ekskul",
+      "scrape:profile": "node src/scraper.js profil",
+      "test:bot": "node -e \"const { getAnswer } = require('./src/bot'); getAnswer('halo').then(console.log).catch(console.error)\"",
+      "test:server": "curl -X GET http://localhost:3000/health",
+      "test:ask": "curl -X POST http://localhost:3000/ask -H \"Content-Type: application/json\" -d \"{\\\"question\\\":\\\"apa saja jurusan?\\\"}\"",
+      "db:backup": "node -e \"const db = require('./src/db'); db.backup('./backup/school-backup.db').then(() => console.log('Backup completed')).catch(console.error)\"",
+      "clean": "rm -rf node_modules package-lock.json && npm install",
+      "setup": "npm install && npm run scrape"
+    },
+  
+  "keywords": [
+    "chatbot",
+    "ai",
+    "education",
+    "school",
+    "smk",
+    "scraper",
+    "database"
+  ],
+  "author": "SMK Syafi'i Akrom",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "eslint": "^8.53.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mufti-1448/Chat-Bot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mufti-1448/Chat-Bot/issues"
+  },
+  "homepage": "https://github.com/mufti-1448/Chat-Bot#readme"
+}

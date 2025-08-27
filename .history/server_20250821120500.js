@@ -1,0 +1,270 @@
+// server.js
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const db = require("./db");
+const {
+    main: runScraper
+} = require("./scraper");
+const {
+    getAnswer
+} = require("./bot"); // ✅ Import bot yang baru
+const fetch = require("node-fetch");
+
+const app = express();
+app.use(cors({
+    origin: "http://localhost:3000",
+    credentials: true
+}));
+app.use(express.json());
+app.use(express.static("public"));
+
+// ===== Integrasi Gemini =====
+async function askGemini(question, contextStr = "") {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return "Konfigurasi server belum lengkap (GEMINI_API_KEY).";
+
+    const body = {
+        contents: [{
+            role: "user",
+            parts: [{
+                text: `Kamu adalah ChatBot resmi SMK Syafi'i Akrom Pekalongan. Jawab singkat, jelas, dan akurat.
+Batasan:
+- Jika pertanyaan tentang sekolah ini, gunakan konteks yang disediakan.
+- Jika pertanyaan pendidikan umum, jawab ringkas dan netral.
+- Jika di luar dua topik itu, katakan: "Maaf, saya hanya menjawab informasi sekolah atau pendidikan."
+
+KONTEKS SEKOLAH:
+${contextStr.slice(0, 4000)}
+
+Pertanyaan: ${question}`
+            }]
+        }]
+    };
+
+    try {
+        const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(body)
+            }
+        );
+
+        const data = await res.json();
+        if (data ?.candidates ?. [0] ? .content ? .parts ? . [0] ? .text) {
+            return data.candidates[0].content.parts[0].text;
+        }
+        return data ?.error ?.message || "Gagal mendapatkan jawaban dari AI.";
+    } catch (error) {
+        console.error("Gemini API Error:", error);
+        return "Maaf, sedang ada gangguan pada sistem AI. Silakan coba lagi nati.";
+    }
+}
+
+// ===== Build context dari DB =====
+async function buildContext() {
+    try {
+        const [statis, jur, eks, news] = await Promise.all([
+            db.all(`SELECT key, value FROM statis`),
+            db.all(`SELECT nama, deskripsi FROM jurusan`),
+            db.all(`SELECT nama, pembina, deskripsi FROM ekskul`),
+            db.all(`SELECT title, link, date FROM berita ORDER BY id DESC LIMIT 5`)
+        ]);
+
+        const map = Object.fromEntries(statis.map(s => [s.key, s.value]));
+        const jurusanStr = jur.map(j => `• ${j.nama}: ${j.deskripsi || 'Tidak ada deskripsi'}`).join("\n") || "-";
+        const ekskulStr = eks.map(e => `• ${e.nama}${e.pembina ? ` (Pembina: ${e.pembina})` : ''}`).join("\n") || "-";
+        const newsStr = news.map(n => `• ${n.title} (${n.date || '-'}) -> ${n.link}`).join("\n") || "-";
+
+        return `
+SMK SYAFI'I AKROM PEKALONGAN
+
+VISI: ${map.visi || "Belum tersedia"}
+MISI: ${map.misi || "Belum tersedia"}
+ALAMAT: ${map.alamat || "Belum tersedia"}
+TELEPON: ${map.telp || "Belum tersedia"}
+EMAIL: ${map.email || "Belum tersedia"}
+
+JURUSAN:
+${jurusanStr}
+
+EKSTRAKURIKULER:
+${ekskulStr}
+
+BERITA TERBARU:
+${newsStr}
+
+Website: ${process.env.BASE_URL || "https://ponpes-smksa.sch.id/"}
+`.trim();
+    } catch (error) {
+        console.error("Error building context:", error);
+        return "Data sekolah belum tersedia.";
+    }
+}
+
+// ===== Endpoint Tanya =====
+app.post("/ask", async (req, res) => {
+    const q = (req.body ?.question || "").trim();
+
+    if (!q) {
+        return res.json({
+            answer: "Masukkan pertanyaan yang ingin Anda tanyakan.",
+            quickReplies: ["Info jurusan", "Info PPDB", "Ekstrakurikuler"]
+        });
+    }
+
+    try {
+        // ✅ GUNAKAN BOT.JS UNTUK MENDAPATKAN JAWABAN
+        const botResponse = await getAnswer(q);
+
+        // Jika bot mengembalikan answer, langsung gunakan
+        if (botResponse.answer && botResponse.source !== "fallback") {
+            return res.json({
+                answer: botResponse.answer,
+                quickReplies: botResponse.quickReplies
+            });
+        }
+
+        // Jika bot tidak menemukan jawaban (fallback), gunakan Gemini AI
+        const ctx = await buildContext();
+        const geminiAnswer = await askGemini(q, ctx);
+
+        return res.json({
+            answer: geminiAnswer,
+            quickReplies: ["Info jurusan", "PPDB", "Kontak sekolah"]
+        });
+
+    } catch (e) {
+        console.error("Error in /ask endpoint:", e);
+        return res.json({
+            answer: "Maaf, sedang terjadi gangguan teknis. Silakan coba lagi dalam beberapa saat.",
+            quickReplies: []
+        });
+    }
+});
+
+// ===== Endpoint Health Check =====
+app.get("/health", async (req, res) => {
+    try {
+        const health = await db.healthCheck();
+        res.json({
+            status: health.status,
+            message: "Server is running",
+            timestamp: new Date().toISOString(),
+            database: health
+        });
+    } catch (error) {
+        res.json({
+            status: "error",
+            message: "Database health check failed",
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// ===== Endpoint Bot Stats (Admin) =====
+app.get("/admin/bot-stats", async (req, res) => {
+    try {
+        const {
+            chatbot
+        } = require("./bot");
+        const cacheStats = chatbot.getCacheStats();
+
+        res.json({
+            status: "success",
+            cache: {
+                size: cacheStats.size,
+                keys: cacheStats.keys.slice(0, 10) // Show first 10 keys only
+            },
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: "error",
+            message: error.message
+        });
+    }
+});
+
+// ===== Endpoint Clear Cache (Admin) =====
+app.post("/admin/clear-cache", async (req, res) => {
+    try {
+        const {
+            chatbot
+        } = require("./bot");
+        chatbot.clearCache();
+
+        res.json({
+            status: "success",
+            message: "Cache cleared successfully"
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: "error",
+            message: error.message
+        });
+    }
+});
+
+// ===== Endpoint Refresh Scraping =====
+app.post("/refresh", async (req, res) => {
+    const token = req.headers["x-refresh-token"];
+    if (token !== process.env.REFRESH_TOKEN) {
+        return res.status(403).json({
+            ok: false,
+            message: "Forbidden"
+        });
+    }
+
+    try {
+        await runScraper();
+        res.json({
+            ok: true,
+            message: "Scrape selesai dan data diperbarui"
+        });
+    } catch (e) {
+        console.error("Refresh error:", e);
+        res.status(500).json({
+            ok: false,
+            message: "Gagal melakukan scraping: " + e.message
+        });
+    }
+});
+
+// ===== Endpoint Test Bot (Development) =====
+app.post("/test-bot", async (req, res) => {
+    const {
+        question
+    } = req.body;
+
+    if (!question) {
+        return res.status(400).json({
+            error: "Question parameter required"
+        });
+    }
+
+    try {
+        const response = await getAnswer(question);
+        res.json({
+            question: question,
+            response: response
+        });
+    } catch (error) {
+        res.status(500).json({
+            error: error.message
+        });
+    }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+    console.log(`✅ Health check: http://localhost:${PORT}/health`);
+    console.log(`🤖 Chatbot endpoint: http://localhost:${PORT}/ask`);
+    console.log(`📊 Bot stats: http://localhost:${PORT}/admin/bot-stats`);
+    console.log(`🧪 Test bot: http://localhost:${PORT}/test-bot`);
+});

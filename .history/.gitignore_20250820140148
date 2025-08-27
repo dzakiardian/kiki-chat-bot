@@ -1,0 +1,14 @@
+# Jangan upload file konfigurasi rahasia
+.env
+
+# Jangan upload file sistem
+.DS_Store
+Thumbs.db
+
+# Jangan upload folder cache
+/vendor/
+/node_modules/
+/cache/
+
+# Jangan upload file log
+*.log

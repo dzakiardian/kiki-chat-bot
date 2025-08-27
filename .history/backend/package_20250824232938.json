@@ -1,0 +1,77 @@
+{
+  "name": "chatbot-backend",
+  "version": "1.0.0",
+  "description": "Backend ChatBot AI untuk SMK Syafi'i Akrom dengan integrasi database dan web scraping",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "scrape": "node src/JS/scraper.js",
+    "scrape:news": "node src/JS/scraper.js berita",
+    "scrape:jurusan": "node src/JS/scraper.js jurusan",
+    "scrape:ekskul": "node src/JS/scraper.js ekskul",
+    "scrape:profile": "node src/JS/scraper.js profil",
+    "test:bot": "node -e \"const { getAnswer } = require('./src/JS/bot'); getAnswer('halo').then(console.log).catch(console.error)\"",
+    "test:server": "curl -X GET http://localhost:3001/api/health",
+    "test:ask": "curl -X POST http://localhost:3001/api/ask -H \"Content-Type: application/json\" -d \"{\\\"message\\\":\\\"apa saja jurusan?\\\"}\"",
+    "db:backup": "node -e \"const db = require('./src/JS/db'); db.backup('./backup/school-backup.db').then(() => console.log('Backup completed')).catch(console.error)\"",
+    "clean": "rm -rf node_modules package-lock.json && npm install",
+    "setup": "npm install && npm run scrape"
+  },
+  "keywords": [
+    "chatbot",
+    "ai",
+    "education",
+    "school",
+    "smk",
+    "scraper",
+    "database",
+    "backend"
+  ],
+  "author": "SMK Syafi'i Akrom",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "minimatch": "^10.0.3",
+    "node-fetch": "^3.3.2",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mufti-1448/Chat-Bot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mufti-1448/Chat-Bot/issues"
+  },
+  "homepage": "https://github.com/mufti-1448/Chat-Bot#readme"
+}
+
+{
+  "name": "chatbot-gemini",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "@google/generative-ai": "^0.2.1",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

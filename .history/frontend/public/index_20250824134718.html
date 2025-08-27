@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROBO SA - Chatbot SMK Syafi'i Akrom</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* ... (CSS tetap sama) ... */
+    </style>
+</head>
+
+<body>
+    <!-- ... (HTML tetap sama) ... -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const chatToggle = document.getElementById('chatToggle');
+            const chatContainer = document.getElementById('chatContainer');
+            const closeChat = document.getElementById('closeChat');
+            const chatHeader = document.getElementById('chatHeader');
+            const chatBody = document.getElementById('chatBody');
+            const userInput = document.getElementById('userInput');
+            const sendButton = document.getElementById('sendButton');
+
+            // ✅ PERBAIKAN: Gunakan URL backend yang benar
+            const API_URL = "https://chatbot-sekolah-backend-6wzhbx6oa-mufti404s-projects.vercel.app/api/ask";
+
+            chatToggle.addEventListener('click', () => {
+                if (chatContainer.classList.contains('active')) {
+                    chatContainer.classList.remove('active');
+                } else {
+                    chatContainer.classList.add('active');
+                }
+            });
+
+            closeChat.addEventListener('click', (e) => {
+                e.stopPropagation();
+                chatContainer.classList.remove('active');
+            });
+
+            chatHeader.addEventListener('click', (e) => {
+                if (e.target === closeChat || closeChat.contains(e.target)) return;
+                if (chatContainer.classList.contains('active')) {
+                    chatContainer.classList.toggle('active');
+                }
+            });
+
+            // ✅ PERBAIKAN: Fungsi sendMessage yang benar
+            async function sendMessage() {
+                const message = userInput.value.trim();
+                if (!message) return;
+
+                addMessage(message, 'user');
+                userInput.value = '';
+                showTypingIndicator();
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message // ✅ parameter yang benar
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    // ✅ Sesuaikan dengan response dari backend
+                    addMessage(data.response || data.answer || "Terima kasih sudah bertanya!", 'bot');
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('Maaf, terjadi kesalahan. Silakan coba lagi.', 'bot');
+                }
+            }
+
+            function addMessage(text, sender, quickReplies = []) {
+                const existingTyping = chatBody.querySelector('.typing-indicator');
+                if (existingTyping) {
+                    chatBody.removeChild(existingTyping);
+                }
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}-message`;
+                messageDiv.innerHTML = text.replace(/\n/g, '<br>');
+
+                if (quickReplies && quickReplies.length > 0) {
+                    const quickRepliesDiv = document.createElement('div');
+                    quickRepliesDiv.className = 'quick-replies';
+
+                    quickReplies.forEach(reply => {
+                        const btn = document.createElement('button');
+                        btn.className = 'quick-reply-btn';
+                        btn.textContent = reply;
+                        btn.addEventListener('click', () => {
+                            addMessage(reply, 'user');
+                            showTypingIndicator();
+                            setTimeout(() => {
+                                sendQuickReply(reply);
+                            }, 300);
+                        });
+                        quickRepliesDiv.appendChild(btn);
+                    });
+
+                    messageDiv.appendChild(quickRepliesDiv);
+                }
+
+                chatBody.appendChild(messageDiv);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+
+            // ✅ PERBAIKAN: Fungsi sendQuickReply yang benar
+            async function sendQuickReply(reply) {
+                showTypingIndicator();
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: reply // ✅ parameter yang benar
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    addMessage(data.response || data.answer || "Terima kasih!", 'bot');
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('Maaf, terjadi kesalahan.', 'bot');
+                }
+            }
+
+            function showTypingIndicator() {
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'typing-indicator';
+
+                for (let i = 0; i < 3; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'typing-dot';
+                    dot.style.animationDelay = `${i * 0.2}s`;
+                    typingDiv.appendChild(dot);
+                }
+
+                chatBody.appendChild(typingDiv);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+
+            // Event listeners
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+            // Quick reply buttons
+            document.querySelectorAll('.quick-reply-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const text = this.textContent;
+                    addMessage(text, 'user');
+                    sendQuickReply(text);
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>

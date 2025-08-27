@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatBot Sekolah</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .typing-indicator span {
+            animation: typingAnimation 1s infinite;
+            animation-delay: calc(0.2s * var(--i));
+        }
+
+        @keyframes typingAnimation {
+
+            0%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: translateY(-5px);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <!-- Chatbot UI -->
+    <div id="chatbot" class="fixed bottom-4 right-4 w-96 bg-white rounded-lg shadow-xl overflow-hidden">
+        <!-- Header -->
+        <div class="bg-blue-600 text-white p-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <img src="https://placehold.co/40x40" alt="Logo Sekolah" class="rounded-full w-10 h-10">
+                <h3 class="font-bold">SekolahBot</h3>
+            </div>
+            <button id="closeChat" class="text-white hover:text-gray-200">✕</button>
+        </div>
+
+        <!-- Chat Area -->
+        <div id="chatArea" class="h-96 overflow-y-auto p-4 space-y-3 bg-gray-50">
+            <div class="flex justify-start">
+                <div class="bg-blue-100 text-gray-800 rounded-lg py-2 px-4 max-w-xs">
+                    <p>Halo! Saya SekolahBot. Saya bisa membantu dengan:</p>
+                    <ul class="list-disc pl-5 mt-1">
+                        <li>Informasi sekolah</li>
+                        <li>Jadwal pelajaran</li>
+                        <li>Kegiatan sekolah</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="border-t border-gray-200 p-4 bg-white">
+            <div class="flex space-x-2">
+                <input type="text" id="userInput" placeholder="Tanyakan sesuatu..."
+                    class="flex-1 border border-gray-300 rounded-lg px-4 py-2">
+                <button id="sendButton" class="bg-blue-600 text-white rounded-lg px-4 py-2">
+                    Kirim
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <button id="chatToggle" class="fixed bottom-4 right-4 bg-blue-600 text-white p-4 rounded-full shadow-lg">
+        💬
+    </button>
+
+    <script>
+        // Database sekolah (simulasikan database/API)
+        const schoolDatabase = {
+            info: {
+                nama: "SMAN 1 Pintar",
+                alamat: "Jl. Pendidikan No. 123, Jakarta",
+                telp: "(021) 1234567",
+                fasilitas: [
+                    "Lab Komputer", "Perpustakaan", "Lapangan Olahraga", "Ruang Serbaguna"
+                ]
+            },
+            jadwal: {
+                "senin": ["Matematika", "Bahasa Indonesia", "IPA", "PJOK"],
+                "selasa": ["Bahasa Inggris", "IPS", "Seni Budaya", "Informatika"]
+            },
+            ekstrakurikuler: {
+                "Pramuka": "Setiap Jumat 14.00-16.00",
+                "Robotika": "Rabu 13.00-15.00 di Lab Komputer",
+                "Basket": "Selasa dan Kamis 15.00-17.00"
+            }
+        };
+
+        // Fungsi untuk fetch data dari website sekolah (simulasi)
+        async function fetchSchoolData(query) {
+            // Dalam implementasi nyata, ini akan menjadi API call ke backend
+            console.log(`Mengambil data sekolah untuk: ${query}`);
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    if (query.includes("alamat")) {
+                        resolve(`Alamat sekolah: ${schoolDatabase.info.alamat}`);
+                    } else if (query.includes("jadwal")) {
+                        const hari = query.includes("besok") ? "selasa" : "senin";
+                        resolve(`Jadwal ${hari}: ${schoolDatabase.jadwal[hari].join(", ")}`);
+                    } else if (query.includes("ekskul")) {
+                        let response = "Ekstrakurikuler:\n";
+                        for (const [nama, jadwal] of Object.entries(schoolDatabase
+                            .ekstrakurikuler)) {
+                            response += `- ${nama}: ${jadwal}\n`;
+                        }
+                        resolve(response);
+                    } else {
+                        resolve(`Informasi tentang ${query} tidak ditemukan di database.`);
+                    }
+                }, 800);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const chatToggle = document.getElementById('chatToggle');
+            const chatbot = document.getElementById('chatbot');
+            const closeChat = document.getElementById('closeChat');
+            const chatArea = document.getElementById('chatArea');
+            const userInput = document.getElementById('userInput');
+            const sendButton = document.getElementById('sendButton');
+
+            chatToggle.addEventListener('click', () => {
+                chatbot.classList.toggle('hidden');
+            });
+
+            closeChat.addEventListener('click', () => {
+                chatbot.classList.add('hidden');
+            });
+
+            async function sendMessage() {
+                const message = userInput.value.trim();
+                if (!message) return;
+
+                addMessage(message, 'user');
+                userInput.value = '';
+
+                // Tampilkan indikator mengetik
+                const typingIndicator = document.createElement('div');
+                typingIndicator.className = 'flex justify-start';
+                typingIndicator.innerHTML = `
+                    <div class="bg-blue-100 text-gray-800 rounded-lg py-2 px-4 max-w-xs flex space-x-1">
+                        <span style="--i:0"></span>
+                        <span style="--i:1"></span>
+                        <span style="--i:2"></span>
+                    </div>
+                `;
+                chatArea.appendChild(typingIndicator);
+                chatArea.scrollTop = chatArea.scrollHeight;
+
+                // Dapatkan respon dari sistem
+                const response = await processMessage(message);
+
+                // Hapus indikator mengetik dan tampilkan respon
+                chatArea.removeChild(typingIndicator);
+                addMessage(response, 'bot');
+            }
+
+            async function processMessage(message) {
+                const lowerMsg = message.toLowerCase();
+
+                // Tangani sapaan
+                if (/(hai|halo|hello)/i.test(lowerMsg)) {
+                    return "Halo! Ada yang bisa saya bantu?";
+                }
+
+                // Tangani pertanyaan spesifik dengan mengambil data
+                if (/(alamat|jadwal|ekskul|ekstrakurikuler)/i.test(lowerMsg)) {
+                    return await fetchSchoolData(lowerMsg);
+                }
+
+                // Fallback response
+                return "Maaf saya belum paham. Anda bisa bertanya tentang:\n- Alamat sekolah\n- Jadwal pelajaran\n- Ekstrakurikuler";
+            }
+
+            function addMessage(text, sender) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+
+                const bubble = document.createElement('div');
+                bubble.className = sender === 'user' ?
+                    'bg-blue-600 text-white rounded-lg py-2 px-4 max-w-xs' :
+                    'bg-blue-100 text-gray-800 rounded-lg py-2 px-4 max-w-xs';
+                bubble.textContent = text;
+
+                messageDiv.appendChild(bubble);
+                chatArea.appendChild(messageDiv);
+                chatArea.scrollTop = chatArea.scrollHeight;
+            }
+
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+        });
+    </script>
+</body>
+
+</html>

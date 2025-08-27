@@ -1,0 +1,6 @@
+# Create railway.toml in backend/
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "npm start"
