@@ -8,8 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         :root {
-            --primary-color: #E52C07
-;
+            --primary-color: #071ae5;
             --secondary-color: #f9fafb;
             --text-color: #1f2937;
         }
@@ -35,7 +34,25 @@
             opacity: 0;
             transition: all 0.3s ease;
             z-index: 1000;
-            pointer-events: none;
+            pointer-events: auto;
+        }
+
+        /* TOGGLE */
+        .chat-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: var(--primary-color);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 2000;
         }
 
         .chat-container.active {
@@ -161,24 +178,6 @@
             animation: dotPulse 1s infinite;
         }
 
-        /* TOGGLE */
-        .chat-toggle {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background-color: var(--primary-color);
-            color: white;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: 999;
-        }
-
         .chat-header i#closeChat {
             cursor: pointer;
             padding: 4px;
@@ -295,7 +294,6 @@
             <button class="send-btn" id="sendButton"><i class="fas fa-paper-plane"></i></button>
         </div>
     </div>
-
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const chatToggle = document.getElementById('chatToggle');
@@ -305,51 +303,56 @@
             const userInput = document.getElementById('userInput');
             const sendButton = document.getElementById('sendButton');
 
-            // Auto pilih Railway atau localhost
-            const API_URL = "http://localhost:3001/api";
+            const API_URL = "http://localhost:3001/api"; // Ganti sesuai server Anda
 
-            chatToggle.addEventListener('click', () => chatContainer.classList.toggle('active'));
-            closeChat.addEventListener('click', () => chatContainer.classList.remove('active'));
+            // Toggle chat
+            chatToggle.addEventListener('click', () => {
+                chatContainer.classList.toggle('active');
 
-            async function sendMessage(message) {
-                if (!message) return;
-                addMessage(message, 'user');
-                userInput.value = '';
-                showTypingIndicator();
-
-                try {
-                    const response = await fetch(`${API_URL}/ask`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            message: message
-                        })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    console.log(data, 'afafa')
-                    addMessage(data.data || "Maaf, saya belum mengerti.", 'bot', data.quickReplies || []);
-                } catch (err) {
-                    console.error(err);
-                    addMessage("Mohon maaf sepertinya koneksi intternetmu sedang tidak bagus.", 'bot');
+                // Sembunyikan toggle saat chat aktif
+                if (chatContainer.classList.contains('active')) {
+                    chatToggle.style.display = 'none';
+                } else {
+                    chatToggle.style.display = 'flex';
                 }
+            });
+
+            // Tombol close chat
+            closeChat.addEventListener('click', () => {
+                chatContainer.classList.remove('active');
+                chatToggle.style.display = 'flex'; // munculkan toggle kembali
+            });
+
+            // Fungsi untuk menambahkan http:// jika tidak ada
+            function addHttp(url) {
+                if (!/^(https?|ftp):\/\//i.test(url)) {
+                    return 'http://' + url;
+                }
+                return url;
             }
 
+            // Tambahkan pesan ke chat
             function addMessage(text, sender, quickReplies = []) {
                 const typing = chatBody.querySelector('.typing-indicator');
-                if (typing) chatBody.removeChild(typing);
+                if (typing) typing.remove();
 
                 const div = document.createElement('div');
                 div.className = `message ${sender}-message`;
-                div.innerHTML = text.replace(/\n/g, '');
 
-                if (quickReplies.length) {
+                // Regex untuk URL yang lebih baik
+                const urlRegex =
+                    /(\b(https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|]|\bwww\.[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|]|\b[-A-Z0-9+&@#\/%?=~_|!:,.;]*\.(com|org|net|gov|edu|id|io|co|web\.id)[-A-Z0-9+&@#\/%=~_|]*)/gi;
+
+                // PERBAIKAN: Menampilkan URL dengan benar
+                div.innerHTML = text
+                    .replace(urlRegex, url => {
+                        const href = addHttp(url);
+                        return `<a href="${href}" target="_blank" style="color: var(--primary-color); text-decoration: underline;${url}</a>`;
+                    })
+                    .replace(/\n/g, '<br>');
+
+                // Quick replies - TAMPILKAN SELALU JIKA ADA (untuk pesan bot)
+                if (sender === 'bot' && quickReplies && quickReplies.length > 0) {
                     const qrDiv = document.createElement('div');
                     qrDiv.className = 'quick-replies';
                     quickReplies.forEach(r => {
@@ -366,6 +369,58 @@
                 chatBody.scrollTop = chatBody.scrollHeight;
             }
 
+            // Mengirim pesan user
+            async function sendMessage(message) {
+                if (!message) return;
+                addMessage(message, 'user');
+                userInput.value = '';
+                showTypingIndicator();
+
+                try {
+                    const response = await fetch(`${API_URL}/ask`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message
+                        })
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                    const data = await response.json();
+
+                    // Pastikan quickReplies selalu ada (minimal array kosong)
+                    const quickReplies = data.quickReplies || [
+                        "Informasi PPDB",
+                        "Informasi jurusan",
+                        "Informasi fasilitas",
+                        "Kontak sekolah"
+                    ];
+
+                    addMessage(
+                        data.data ||
+                        "Hmm, saya belum punya info itu. Bisa jelaskan lebih detail supaya saya bisa bantu?",
+                        'bot',
+                        quickReplies
+                    );
+                } catch (err) {
+                    console.error(err);
+
+                    // Quick replies default untuk error
+                    const errorQuickReplies = [
+                        "Coba lagi",
+                        "Informasi PPDB",
+                        "Informasi jurusan"
+                    ];
+
+                    addMessage("Mohon maaf sepertinya koneksi internetmu sedang tidak bagus.", 'bot',
+                        errorQuickReplies);
+                }
+            }
+
+            // Tampilkan indikator mengetik
             function showTypingIndicator() {
                 const old = chatBody.querySelector('.typing-indicator');
                 if (old) old.remove();
@@ -382,16 +437,16 @@
                 chatBody.scrollTop = chatBody.scrollHeight;
             }
 
+            // Event tombol kirim & Enter
             sendButton.addEventListener('click', () => sendMessage(userInput.value.trim()));
             userInput.addEventListener('keypress', e => {
                 if (e.key === 'Enter') sendMessage(userInput.value.trim());
             });
 
-            // Quick reply awal - hanya satu event listener
+            // Quick reply awal di pesan pertama
             document.querySelectorAll('.quick-reply-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
-                    const text = this.textContent;
-                    sendMessage(text);
+                    sendMessage(this.textContent);
                 });
             });
         });
